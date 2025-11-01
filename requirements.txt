@@ -1,0 +1,23 @@
+
+
+plotly
+
+#FastAPI Web Framework
+
+fastapi
+uvicorn[standard]
+
+#Core Machine Learning Dependencies
+
+transformers==4.41.0
+torch # PyTorch for model execution
+
+#Data Modeling (Pydantic is used by FastAPI)
+
+pydantic
+
+#Used for reading PDF documents in future
+
+#We will use PyMuPDF (fitz) for reliable text extraction
+
+PyMuPDF
