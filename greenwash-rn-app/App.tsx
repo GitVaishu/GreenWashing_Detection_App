@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker'; // For PDF file selection
-import * as FileSystem from 'expo-file-system'; // For reading file data
+// import * as FileSystem from 'expo-file-system'; // This is not currently used and may cause build conflicts
 import { Ionicons } from '@expo/vector-icons'; // For icons
 // NOTE: Base-64 is required for polyfilling fetch in some React Native environments
 import { decode } from 'base-64'; 
@@ -11,10 +11,9 @@ if (!global.atob) { global.atob = decode; }
 
 
 // --- CONFIGURATION ---
-// IMPORTANT: Use the IP address of the machine running the FastAPI server.
-// For Android Emulator: 10.0.2.2
-// For physical Android device on the same WiFi: Find your PC's local IP (e.g., 192.168.1.10)
-const BACKEND_URL = 'http://10.0.2.2:8000'; 
+// IMPORTANT: Use your PC's actual local network IP address (e.g., 192.168.x.x)
+// This IP was derived from your terminal output (192.168.21.67)
+const BACKEND_URL = 'http://192.168.21.67:8000'; 
 
 // --- DATA MODELS ---
 
@@ -23,15 +22,17 @@ interface Score {
   score: number;
 }
 
+interface DetailedAnalysis {
+  'Greenwashing': Score[];
+  'Genuine Sustainability': Score[];
+  'Marketing Hype': Score[];
+}
+
 interface GreenwashResponse {
   prediction: string;
   confidence: number;
   scores: Score[];
-  detailed_analysis: {
-    'Greenwashing': Score[];
-    'Genuine Sustainability': Score[];
-    'Marketing Hype': Score[];
-  };
+  detailed_analysis: DetailedAnalysis;
 }
 
 
@@ -78,18 +79,12 @@ const App = () => {
 
     if (isFile) {
       url = `${BACKEND_URL}/api/classify-file`;
-      // Headers must be empty for multipart/form-data to let fetch set boundaries
       headers = {}; 
       
       try {
-        // NOTE: Reading as Base64 is not strictly necessary for file upload, 
-        // but keeping it simple for demonstration. The actual file upload needs 
-        // to be handled as multipart/form-data, which is complex in RN's fetch.
-        // We will stick to the standard multipart structure which Expo/RN should handle.
-
         const formData = new FormData();
         
-        // Append the file using a Blob-like structure required for RN fetch
+        // This is the correct way to append a file in React Native using fetch/FormData
         formData.append('file', {
           uri: fileUri,
           name: fileName,
@@ -114,25 +109,36 @@ const App = () => {
     try {
       const fetchOptions: RequestInit = {
         method: 'POST',
-        headers: body instanceof FormData ? {} : headers, // Ensure headers are correct for JSON or FormData
+        headers: body instanceof FormData ? {} : headers,
         body: body instanceof FormData ? body : JSON.stringify(body),
-        // mode: 'cors' is usually not needed or problematic in native fetch/Expo environments
       };
 
       const apiResponse = await fetch(url, fetchOptions);
       
       if (!apiResponse.ok) {
+        // If the server sends an HTTP error (4xx or 5xx), the response body is the error message.
         const errorText = await apiResponse.text();
         throw new Error(`API Error: ${apiResponse.status} - ${errorText.substring(0, 100)}`);
       }
 
-      const jsonResponse: GreenwashResponse = await apiResponse.json();
+      // Check if the response is empty (could cause JSON parse error)
+      const text = await apiResponse.text();
+      if (!text) {
+          throw new Error("Server returned an empty response.");
+      }
+      
+      const jsonResponse: GreenwashResponse = JSON.parse(text);
+      
+      // Basic validation for critical fields
+      if (!jsonResponse || !jsonResponse.prediction || !jsonResponse.scores) {
+          throw new Error("Invalid response structure received from API.");
+      }
+      
       setResponse(jsonResponse);
 
     } catch (e: any) {
       console.error("Fetch failed:", e);
-      // NOTE: For physical device testing, user needs to update BACKEND_URL to their PC's local IP
-      setErrorMessage(`Connection Error: Check your backend server and the BACKEND_URL in App.tsx.`);
+      setErrorMessage(`API Connection/Parsing Error: ${e.message}. Ensure backend data is valid.`);
     } finally {
       setLoading(false);
     }
@@ -140,7 +146,6 @@ const App = () => {
 
   const handleFilePick = async () => {
     try {
-      // NOTE: Using DocumentPicker from Expo, which handles file selection on mobile
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/pdf',
         copyToCacheDirectory: true,
@@ -158,10 +163,8 @@ const App = () => {
           [{ text: "OK" }]
         );
         
-        // Reset claimText to indicate file analysis is happening
         setClaimText(`[File: ${file.name} selected for analysis...]`); 
         
-        // Pass the file details to the main handler for API call
         await handleAnalyzeText(true, file.uri, file.name);
 
       }
@@ -172,13 +175,17 @@ const App = () => {
   };
 
   const renderResultBox = () => {
-    if (!response) return null;
+    // CRITICAL GUARD: Ensure response is not null or undefined
+    if (!response || !response.prediction) return null;
 
     const mainPrediction = response.prediction;
     const mainConfidence = response.confidence;
     const bgColor = getBackgroundColor(mainPrediction);
     const textColor = getColor(mainPrediction);
     const icon = mainPrediction === 'Greenwashing' ? 'warning' : mainPrediction === 'Genuine Sustainability' ? 'checkmark-circle' : 'megaphone';
+    
+    // Check if detailed_analysis is valid before attempting to map over it
+    const detailedAnalysis = response.detailed_analysis;
 
     return (
       <View style={[styles.resultBox, { backgroundColor: bgColor, borderColor: textColor }]}>
@@ -196,20 +203,25 @@ const App = () => {
           <Text style={[styles.scoreValue, { color: textColor }]}>{(mainConfidence * 100).toFixed(2)}%</Text>
         </View>
 
-        {/* Detailed Scores */}
-        <View style={styles.detailedSection}>
-          <Text style={styles.detailedTitle}>Detailed Analysis</Text>
-          {Object.entries(response.detailed_analysis).map(([category, scores]) => (
-            <View key={category} style={styles.categoryContainer}>
-              <Text style={styles.categoryTitle}>{category}</Text>
-              {scores.slice(0, 3).map((score, index) => (
-                <Text key={index} style={styles.indicatorText}>
-                  • {score.label}: {(score.score * 100).toFixed(1)}%
-                </Text>
-              ))}
-            </View>
-          ))}
-        </View>
+        {/* Detailed Scores - Check if detailedAnalysis object exists and has keys */}
+        {detailedAnalysis && Object.keys(detailedAnalysis).length > 0 && (
+          <View style={styles.detailedSection}>
+            <Text style={styles.detailedTitle}>Detailed Analysis</Text>
+            {Object.entries(detailedAnalysis).map(([category, scores]) => (
+                // CRITICAL GUARD: Ensure scores is an array before mapping
+                (Array.isArray(scores) && scores.length > 0) ? (
+                    <View key={category} style={styles.categoryContainer}>
+                    <Text style={styles.categoryTitle}>{category}</Text>
+                    {scores.slice(0, 3).map((score, index) => (
+                      <Text key={index} style={styles.indicatorText}>
+                        • {score.label}: {(score.score * 100).toFixed(1)}%
+                      </Text>
+                    ))}
+                  </View>
+                ) : null
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -258,7 +270,7 @@ const App = () => {
 
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4CAF50" />
+            <ActivityIndicator size="large" color="#1e8449" />
             <Text style={styles.loadingText}>Analyzing claim with DistilBERT...</Text>
           </View>
         )}

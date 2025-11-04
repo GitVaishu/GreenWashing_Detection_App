@@ -1,3 +1,7 @@
+"""
+Pydantic Data Models for the FastAPI API.
+These define the expected JSON format for requests and responses.
+"""
 from pydantic import BaseModel
 from typing import List, Dict, Union
 
@@ -7,28 +11,34 @@ class Score(BaseModel):
     label: str
     score: float
 
+# Define the structure for the input payload
+class TextClaim(BaseModel):
+    """The structure for the incoming text claim request payload."""
+    text: str
+
+# Define the structure for the detailed analysis breakdown (e.g., 'Greenwashing': [Score, ...])
+class DetailedAnalysis(BaseModel):
+    """The structure for grouped detailed indicators."""
+    Greenwashing: List[Score]
+    Genuine_Sustainability: List[Score]
+    Marketing_Hype: List[Score]
+    
+    # Allows FastAPI to map Python dict keys (using underscores) to Pydantic (using camelCase if needed)
+    class Config:
+        alias_generator = lambda string: string.replace('_', ' ').title().replace(' ', '')
+        allow_population_by_field_name = True
+        
 # Define the structure for the main API response
 class GreenwashResponse(BaseModel):
     """The full response structure for a greenwashing classification request."""
-    input_text: str
     
     # Primary classification result (e.g., Greenwashing)
     prediction: str
     confidence: float
     
-    # Detailed scores for all primary labels
-    primary_scores: List[Score]
-    
-    # Detailed analysis indicators
-    detailed_scores: List[Score]
+    # Detailed scores for all primary labels (e.g., Greenwashing, Genuine, Hype)
+    scores: List[Score]
     
     # Grouped detailed indicators for easy frontend display
-    grouped_indicators: Dict[str, List[Score]]
-
-# Define the structure for the input payload
-class ClaimRequest(BaseModel):
-    """The structure for the incoming request payload."""
-    text: str
+    detailed_analysis: Dict[str, List[Score]]
     
-    # Optional file hash for future file-based analysis (e.g., PDF)
-    file_hash: Union[str, None] = None
