@@ -1,0 +1,28 @@
+{
+  "name": "greenwash-rn-app",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
+    "base-64": "^1.0.0",
+    "expo": "~54.0.22",
+    "expo-document-picker": "^14.0.7",
+    "expo-file-system": "^19.0.17",
+    "expo-status-bar": "~3.0.8",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
+  },
+  "devDependencies": {
+    "@types/base-64": "^1.0.2",
+    "@types/react": "~19.1.0",
+    "@types/react-native": "^0.72.8",
+    "typescript": "~5.9.2"
+  },
+  "private": true
+}
