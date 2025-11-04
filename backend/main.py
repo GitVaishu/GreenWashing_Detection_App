@@ -102,8 +102,8 @@ import io
 import fitz  # PyMuPDF library for PDF processing (imported as fitz)
 
 # Local imports
-from .models import TextClaim, GreenwashResponse # Assuming models.py is in the same directory
-from .ml_core import MLModel
+from models import TextClaim, GreenwashResponse # Assuming models.py is in the same directory
+from ml_core import MLModel
 
 # --- Initialization ---
 app = FastAPI(title="Greenwash Detector API", version="1.0")
