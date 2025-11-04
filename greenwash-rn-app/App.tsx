@@ -9,11 +9,13 @@ import {
 // Import your new screens
 import LandingScreen from "./src/screens/landingpg";
 import DetectorScreen from "./src/screens/detectorpg";
+import MethodScreen from "./src/screens/methodpg";
 
 // 2. DEFINE and EXPORT your screen list
 // This tells TypeScript what screens exist
 export type RootStackParamList = {
-  Landing: undefined; // 'Landing' screen takes no parameters
+  Landing: undefined;
+  Method: undefined;
   Detector: undefined; // 'Detector' screen takes no parameters
 };
 
@@ -28,6 +30,12 @@ function App() {
           name="Landing"
           component={LandingScreen}
           options={{ headerShown: false }}
+        />
+        {/* ADD THIS NEW SCREEN */}
+        <Stack.Screen
+          name="Method"
+          component={MethodScreen}
+          options={{ headerShown: false }} // Hides the default header
         />
         <Stack.Screen
           name="Detector"

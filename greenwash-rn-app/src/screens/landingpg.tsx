@@ -96,7 +96,7 @@ const LandingScreen = ({ navigation }: Props) => {
 
         <TouchableOpacity
           style={styles.getStartedButton}
-          onPress={() => navigation.navigate("Detector")}
+          onPress={() => navigation.navigate("Method")}
         >
           <Text style={styles.buttonText}>Get Started</Text>
         </TouchableOpacity>
@@ -144,12 +144,12 @@ const styles = StyleSheet.create({
     fontWeight: "normal",
     color: "#00552E",
     fontFamily: "serif",
-    marginTop: 20,
+    marginTop: 70,
   },
   iconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 150,
+    height: 150,
+    borderRadius: 80,
     backgroundColor: "#28A745",
     alignItems: "center",
     justifyContent: "center",
@@ -157,11 +157,11 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 5,
+    shadowRadius: 10,
     elevation: 8,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 20,
     color: "#333",
     textAlign: "center",
     marginBottom: 20,
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: "center",
     marginTop: 30,
-    marginBottom: 20,
+    marginBottom: 30,
     elevation: 3,
   },
   buttonText: {
