@@ -6,13 +6,9 @@ python-multipart
 
 # Core Machine Learning Dependencies
 transformers==4.41.0
-torch 
 
 # Data Modeling (Pydantic is used by FastAPI)
 pydantic
-
-# PDF Processing
-PyMuPDF
 
 # CRITICAL for Image Analysis (OCR)
 pytesseract
