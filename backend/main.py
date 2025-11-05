@@ -13,8 +13,8 @@ from PIL import Image
 
 os.environ['TESSDATA_PREFIX'] = r'C:\Program Files\Tesseract-OCR\tessdata'
 # Local imports
-from .models import TextClaim, GreenwashResponse # Assuming models.py is in the same directory
-from .ml_core import MLModel
+from models import TextClaim, GreenwashResponse # Assuming models.py is in the same directory
+from ml_core import MLModel
 
 # --- Initialization ---
 app = FastAPI(title="Greenwash Detector API", version="1.0")

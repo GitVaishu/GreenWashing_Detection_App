@@ -27,8 +27,7 @@ if (!(global as any).atob) {
 }
 
 // --- CONFIGURATION ---
-const BACKEND_URL = "http://10.173.67.109:8000"; // <<< MAKE SURE THIS IS YOUR IP
-
+const BACKEND_URL = "http://192.168.31.137:8000"; // <<< MAKE SURE THIS IS YOUR IP
 
 // --- DATA MODELS ---
 interface Score {
@@ -89,58 +88,62 @@ const DetectorScreen = ({ route, navigation }: Props) => {
 
     // 2. Minimum Length Check
     // Prevents sending extremely short, meaningless inputs (like a single number)
-    const MIN_LENGTH = 10; 
+    const MIN_LENGTH = 10;
     if (trimmedClaim.length < MIN_LENGTH) {
-      setErrorMessage(`Claim must be at least ${MIN_LENGTH} characters long to be analyzed.`);
+      setErrorMessage(
+        `Claim must be at least ${MIN_LENGTH} characters long to be analyzed.`
+      );
       return;
     }
-    
+
     // 3. Simple Numeric Check (For your 'random number' issue)
     // If the input is only a number (e.g., "12345"), reject it.
     // This uses a simple RegExp to check if the string contains ONLY digits (and optionally spaces/punctuation).
-    const numericRegex = /^[0-9\s.,]+$/; 
+    const numericRegex = /^[0-9\s.,]+$/;
     if (numericRegex.test(trimmedClaim)) {
-        // We're checking if the input is primarily a number (e.g., "12345", "10.5", "500")
-        setErrorMessage("Input appears to be a number. Please enter a text-based environmental claim.");
-        return;
+      // We're checking if the input is primarily a number (e.g., "12345", "10.5", "500")
+      setErrorMessage(
+        "Input appears to be a number. Please enter a text-based environmental claim."
+      );
+      return;
     }
 
     // --- END: ENHANCED VALIDATION LOGIC ---
-    
+
     // --- PROCEED WITH API CALL ONLY IF VALIDATION PASSES ---
     setLoading(true);
     // setErrorMessage(""); // Already cleared above
     setResponse(null);
     const url = `${BACKEND_URL}/api/classify-text`;
     const body = JSON.stringify({ text: trimmedClaim }); // Use the trimmed version
-    
+
     try {
-        // ... (rest of the API call logic remains the same)
-        const fetchOptions: RequestInit = {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: body,
-        };
-        const apiResponse = await fetch(url, fetchOptions);
-        const text = await apiResponse.text();
-        if (!apiResponse.ok) {
-            throw new Error(
-                `API Error: ${apiResponse.status} - ${text.substring(0, 100)}`
-            );
-        }
-        if (!text) {
-            throw new Error("Server returned an empty response.");
-        }
-        const jsonResponse: GreenwashResponse = JSON.parse(text);
-        if (!jsonResponse || !jsonResponse.prediction || !jsonResponse.scores) {
-            throw new Error("Invalid response structure received from API.");
-        }
-        setResponse(jsonResponse);
+      // ... (rest of the API call logic remains the same)
+      const fetchOptions: RequestInit = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: body,
+      };
+      const apiResponse = await fetch(url, fetchOptions);
+      const text = await apiResponse.text();
+      if (!apiResponse.ok) {
+        throw new Error(
+          `API Error: ${apiResponse.status} - ${text.substring(0, 100)}`
+        );
+      }
+      if (!text) {
+        throw new Error("Server returned an empty response.");
+      }
+      const jsonResponse: GreenwashResponse = JSON.parse(text);
+      if (!jsonResponse || !jsonResponse.prediction || !jsonResponse.scores) {
+        throw new Error("Invalid response structure received from API.");
+      }
+      setResponse(jsonResponse);
     } catch (e: any) {
-        console.error("Fetch failed:", e);
-        setErrorMessage(`API Connection/Parsing Error: ${e.message}.`);
+      console.error("Fetch failed:", e);
+      setErrorMessage(`API Connection/Parsing Error: ${e.message}.`);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   }, [claimText]); // Note: dependency is still claimText
 

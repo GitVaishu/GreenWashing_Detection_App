@@ -62,7 +62,7 @@ const LandingScreen = ({ navigation }: Props) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.title}>Green Cart</Text>
+        <Text style={styles.title}>EcoVerity</Text>
 
         <View style={styles.iconCircle}>
           <Ionicons name="leaf" size={60} color="#fff" />
