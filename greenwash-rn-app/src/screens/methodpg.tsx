@@ -77,7 +77,7 @@ const MethodScreen = ({ navigation }: Props) => {
           {/* --- Button 3: Detect through Image --- */}
           <TouchableOpacity
             style={styles.methodBox}
-            onPress={handleNotImplemented}
+            onPress={() => navigation.navigate("ImageOption")}
           >
             <View style={styles.iconCircle}>
               <Ionicons name="image-outline" size={28} color="#1e8449" />
@@ -94,7 +94,7 @@ const MethodScreen = ({ navigation }: Props) => {
 
         {/* --- IMAGE AT THE BOTTOM --- */}
         <Image
-          source={require("C:\\Users\\Anagha\\OneDrive\\Desktop\\MDM project\\g2\\GreenWashing_Detection_App\\greenwash-rn-app\\assets\\images\\i1.png")} // <<< UPDATE THIS PATH!
+          source={require("../../assets/images/i1.png")} // <<< UPDATE THIS PATH!
           style={styles.bottomImage}
         />
         {/* --- END IMAGE COMPONENT --- */}
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginTop: 0,
     marginBottom: 80,
-    opacity: 2.0,
+    opacity: 1.0,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   SafeAreaView,
+  Image,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,7 +27,7 @@ if (!(global as any).atob) {
 }
 
 // --- CONFIGURATION ---
-const BACKEND_URL = "http://192.168.31.137:8000"; // <<< MAKE SURE THIS IS YOUR IP
+const BACKEND_URL = "http://192.168.21.67:8000"; // <<< MAKE SURE THIS IS YOUR IP
 
 // --- DATA MODELS ---
 interface Score {
@@ -52,33 +53,45 @@ type Props = NativeStackScreenProps<RootStackParamList, "Detector">;
 const DetectorScreen = ({ route, navigation }: Props) => {
   // Get the 'mode' from the navigation parameter
   const { mode } = route.params;
+  // Get imageUri if it exists
+  const imageUri = (route.params as { mode: "image"; imageUri: string })
+    .imageUri;
 
   const [claimText, setClaimText] = useState("");
   const [response, setResponse] = useState<GreenwashResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // --- API LOGIC (Same as your old file) ---
+  // Clear state when the screen focus changes (e.g., user goes back)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      setResponse(null);
+      setErrorMessage("");
+      setClaimText("");
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  // --- API LOGIC ---
+
   const handleAnalyzeText = useCallback(async () => {
+    // (This function is the same as before)
     if (claimText.trim() === "") {
       setErrorMessage("Please enter a claim.");
       return;
     }
-
     setLoading(true);
     setErrorMessage("");
     setResponse(null);
-
     const url = `${BACKEND_URL}/api/classify-text`;
     const body = JSON.stringify({ text: claimText });
-
     try {
       const fetchOptions: RequestInit = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: body,
       };
-
       const apiResponse = await fetch(url, fetchOptions);
       const text = await apiResponse.text();
       if (!apiResponse.ok) {
@@ -89,7 +102,6 @@ const DetectorScreen = ({ route, navigation }: Props) => {
       if (!text) {
         throw new Error("Server returned an empty response.");
       }
-
       const jsonResponse: GreenwashResponse = JSON.parse(text);
       if (!jsonResponse || !jsonResponse.prediction || !jsonResponse.scores) {
         throw new Error("Invalid response structure received from API.");
@@ -104,21 +116,19 @@ const DetectorScreen = ({ route, navigation }: Props) => {
   }, [claimText]);
 
   const handleFilePick = useCallback(async () => {
+    // (This function is the same as before)
     setLoading(true);
     setErrorMessage("");
     setResponse(null);
-
     try {
       const docResult = await DocumentPicker.getDocumentAsync({
         type: "application/pdf",
         copyToCacheDirectory: true,
       });
-
       if (docResult.canceled) {
         setLoading(false);
         return;
       }
-
       const file = docResult.assets[0];
       const url = `${BACKEND_URL}/api/classify-file`;
       const formData = new FormData();
@@ -127,13 +137,11 @@ const DetectorScreen = ({ route, navigation }: Props) => {
         name: file.name,
         type: "application/pdf",
       } as any);
-
       const fetchOptions: RequestInit = {
         method: "POST",
-        headers: {}, // Let fetch set content-type
+        headers: {},
         body: formData,
       };
-
       const apiResponse = await fetch(url, fetchOptions);
       const text = await apiResponse.text();
       if (!apiResponse.ok) {
@@ -141,7 +149,6 @@ const DetectorScreen = ({ route, navigation }: Props) => {
           `API Error: ${apiResponse.status} - ${text.substring(0, 100)}`
         );
       }
-
       const jsonResponse: GreenwashResponse = JSON.parse(text);
       setResponse(jsonResponse);
     } catch (err: any) {
@@ -152,9 +159,58 @@ const DetectorScreen = ({ route, navigation }: Props) => {
     }
   }, []);
 
+  // --- NEW: API Logic for Image Analysis ---
+  const handleAnalyzeImage = useCallback(async () => {
+    if (!imageUri) {
+      setErrorMessage("No image was provided.");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage("");
+    setResponse(null);
+
+    // This is the new backend endpoint we agreed on
+    const url = `${BACKEND_URL}/api/classify-image`;
+    const formData = new FormData();
+
+    // Get file type from URI
+    const fileType = imageUri.split(".").pop();
+
+    formData.append("file", {
+      uri: imageUri,
+      name: `upload.${fileType}`,
+      type: `image/${fileType}`, // e.g., image/jpeg
+    } as any);
+
+    try {
+      const fetchOptions: RequestInit = {
+        method: "POST",
+        headers: {}, // Let fetch set content-type
+        body: formData,
+      };
+
+      const apiResponse = await fetch(url, fetchOptions);
+      const text = await apiResponse.text();
+      if (!apiResponse.ok) {
+        // We will get a 400 error if the backend isn't ready for this yet
+        throw new Error(
+          `API Error: ${apiResponse.status} - ${text.substring(0, 100)}`
+        );
+      }
+
+      const jsonResponse: GreenwashResponse = JSON.parse(text);
+      setResponse(jsonResponse);
+    } catch (e: any) {
+      console.error("Image analysis failed:", e);
+      setErrorMessage(`Image analysis error: ${e.message}.`);
+    } finally {
+      setLoading(false);
+    }
+  }, [imageUri]);
+
   // --- RENDER FUNCTIONS ---
 
-  // This is your "buffering thing"!
   if (loading) {
     return (
       <View style={[styles.safeArea, styles.loadingContainer]}>
@@ -164,7 +220,6 @@ const DetectorScreen = ({ route, navigation }: Props) => {
     );
   }
 
-  // Renders the Text Input UI (from your mockup)
   const renderTextUI = () => (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>Analyze Claim</Text>
@@ -182,7 +237,6 @@ const DetectorScreen = ({ route, navigation }: Props) => {
     </View>
   );
 
-  // Renders a simple PDF UI (we can design this next)
   const renderPdfUI = () => (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>Analyze PDF</Text>
@@ -193,17 +247,29 @@ const DetectorScreen = ({ route, navigation }: Props) => {
     </View>
   );
 
-  // Renders the Result Box (styled to your mockup)
-  const renderResultBox = () => {
-    if (!response) return null;
+  // --- NEW: Render function for Image ---
+  const renderImageUI = () => (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>Analyze Image</Text>
+      {imageUri && (
+        <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+      )}
+      <TouchableOpacity style={styles.button} onPress={handleAnalyzeImage}>
+        <Ionicons name="analytics" size={18} color="#fff" />
+        <Text style={styles.buttonText}>Analyze Image</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
+  const renderResultBox = () => {
+    // (This function is the same as before)
+    if (!response) return null;
     return (
       <View style={[styles.card, styles.resultCard]}>
         <View style={styles.resultHeader}>
           <Ionicons name="checkmark-circle" size={24} color="#1e8449" />
           <Text style={styles.cardTitle}>Classification Result</Text>
         </View>
-
         <View style={styles.scoreRow}>
           <Text style={styles.scoreLabel}>Prediction:</Text>
           <Text style={styles.scoreValue}>{response.prediction}</Text>
@@ -214,11 +280,8 @@ const DetectorScreen = ({ route, navigation }: Props) => {
             {(response.confidence * 100).toFixed(2)}%
           </Text>
         </View>
-
         <View style={styles.divider} />
-
         <Text style={styles.detailedTitle}>Detailed Analysis</Text>
-
         {response.detailed_analysis &&
           Object.entries(response.detailed_analysis).map(([category, scores]) =>
             Array.isArray(scores) && scores.length > 0 ? (
@@ -243,20 +306,21 @@ const DetectorScreen = ({ route, navigation }: Props) => {
         {/* Show UI based on the 'mode' parameter */}
         {mode === "text" && renderTextUI()}
         {mode === "pdf" && renderPdfUI()}
+        {/* --- NEW: Show Image UI --- */}
+        {mode === "image" && renderImageUI()}
 
         {errorMessage ? (
           <Text style={styles.errorText}>{errorMessage}</Text>
         ) : null}
-
-        {/* Show results at the bottom */}
         {renderResultBox()}
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-// --- NEW STYLES ---
+// --- STYLES ---
 const styles = StyleSheet.create({
+  // (Styles are mostly the same...)
   safeArea: {
     flex: 1,
     backgroundColor: "#F3FAF7",
@@ -264,7 +328,6 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
   },
-  // Main card style
   card: {
     backgroundColor: "#fff",
     borderRadius: 20,
@@ -282,7 +345,6 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 15,
   },
-  // Text Input
   input: {
     backgroundColor: "#F9F9F9",
     borderColor: "#EFEFEF",
@@ -294,10 +356,17 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     marginBottom: 15,
   },
-  // Button
+  // --- NEW: Image Preview Style ---
+  imagePreview: {
+    width: "100%",
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 15,
+    backgroundColor: "#EFEFEF",
+  },
   button: {
     flexDirection: "row",
-    backgroundColor: "#35A46C", // New button color from mockup
+    backgroundColor: "#35A46C",
     paddingVertical: 15,
     borderRadius: 30,
     alignItems: "center",
@@ -309,7 +378,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  // Loading Screen
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -320,13 +388,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#006A4E",
   },
-  // Error Text
   errorText: {
     color: "#e74c3c",
     textAlign: "center",
     marginBottom: 10,
   },
-  // Result Card
   resultCard: {
     backgroundColor: "#F3FAF7",
     borderColor: "#CDEAE0",

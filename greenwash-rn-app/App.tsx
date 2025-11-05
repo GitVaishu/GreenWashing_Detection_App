@@ -1,26 +1,31 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
-// 1. IMPORT the type from native-stack
 import {
   createNativeStackNavigator,
   NativeStackScreenProps,
 } from "@react-navigation/native-stack";
 
-// Import your new screens
+// Import all your screens
 import LandingScreen from "./src/screens/landingpg";
-import DetectorScreen from "./src/screens/detectorpg";
 import MethodScreen from "./src/screens/methodpg";
+import ImageOptionScreen from "./src/screens/imageoption"; // <-- IMPORT NEW
+import DetectorScreen from "./src/screens/detectorpg";
 
-// 2. DEFINE and EXPORT your screen list
-// This tells TypeScript what screens exist
+// --- DEFINE YOUR SCREEN LIST ---
 export type RootStackParamList = {
   Landing: undefined;
-  Method: undefined; 
-  // --- CHANGE THIS LINE ---
-  Detector: { mode: 'text' | 'pdf' }; // It now accepts a 'mode' parameter
+  Method: undefined;
+  ImageOption: undefined; // <-- ADD NEW SCREEN
+
+  // This is now a more complex type.
+  // The Detector screen can be opened in one of 3 ways:
+  Detector:
+    | { mode: "text" }
+    | { mode: "pdf" }
+    | { mode: "image"; imageUri: string }; // <-- ADD IMAGE MODE
 };
 
-// 3. PASS the list to the navigator
+// --- Create the Navigator ---
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function App() {
@@ -32,11 +37,25 @@ function App() {
           component={LandingScreen}
           options={{ headerShown: false }}
         />
-        {/* ADD THIS NEW SCREEN */}
         <Stack.Screen
           name="Method"
           component={MethodScreen}
-          options={{ headerShown: false }} // Hides the default header
+          options={{ headerShown: false }}
+        />
+        {/* --- ADD THE NEW SCREEN TO THE STACK --- */}
+        <Stack.Screen
+          name="ImageOption"
+          component={ImageOptionScreen}
+          options={{
+            title: "Image Greenwashing Detector",
+            headerStyle: { backgroundColor: "#F3FAF7" },
+            headerShadowVisible: false,
+            headerTitleStyle: {
+              color: "#00552E",
+              fontSize: 20,
+              fontWeight: "600",
+            },
+          }}
         />
         <Stack.Screen
           name="Detector"
