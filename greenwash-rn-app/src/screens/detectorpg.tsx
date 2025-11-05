@@ -27,7 +27,7 @@ if (!(global as any).atob) {
 }
 
 // --- CONFIGURATION ---
-const BACKEND_URL = "http://192.168.31.137:8000"; // <<< MAKE SURE THIS IS YOUR IP
+const BACKEND_URL = "https://ecoverity.onrender.com";
 
 // --- DATA MODELS ---
 interface Score {
