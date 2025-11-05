@@ -18,6 +18,10 @@ ENV PATH $PATH:/usr/bin
 # Copy requirements file and install dependencies
 # We use --no-cache-dir to keep the final image size small
 COPY requirements.txt /app/
+# First, install the small CPU-only version of PyTorch
+RUN pip install torch --no-cache-dir --index-url https://download.pytorch.org/whl/cpu
+
+# Now, install all the other packages
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the backend code (your main.py, ml_core.py, etc.)
