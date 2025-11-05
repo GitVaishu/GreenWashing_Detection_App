@@ -15,8 +15,9 @@ import MethodScreen from "./src/screens/methodpg";
 // This tells TypeScript what screens exist
 export type RootStackParamList = {
   Landing: undefined;
-  Method: undefined;
-  Detector: undefined; // 'Detector' screen takes no parameters
+  Method: undefined; 
+  // --- CHANGE THIS LINE ---
+  Detector: { mode: 'text' | 'pdf' }; // It now accepts a 'mode' parameter
 };
 
 // 3. PASS the list to the navigator

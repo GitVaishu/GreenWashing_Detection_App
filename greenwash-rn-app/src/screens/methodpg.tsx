@@ -39,7 +39,8 @@ const MethodScreen = ({ navigation }: Props) => {
           {/* --- Button 1: Detect through Text --- */}
           <TouchableOpacity
             style={styles.methodBox}
-            onPress={() => navigation.navigate("Detector")}
+            // --- CHANGE THIS LINE ---
+            onPress={() => navigation.navigate("Detector", { mode: "text" })}
           >
             <View style={styles.iconCircle}>
               <Ionicons
@@ -59,7 +60,8 @@ const MethodScreen = ({ navigation }: Props) => {
           {/* --- Button 2: Detect through PDF --- */}
           <TouchableOpacity
             style={styles.methodBox}
-            onPress={() => navigation.navigate("Detector")}
+            // --- CHANGE THIS LINE ---
+            onPress={() => navigation.navigate("Detector", { mode: "pdf" })}
           >
             <View style={styles.iconCircle}>
               <Ionicons name="document-text" size={28} color="#1e8449" />
