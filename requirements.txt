@@ -1,23 +1,19 @@
-
-
-plotly
-
-#FastAPI Web Framework
-
+# FastAPI Web Framework
 fastapi
 uvicorn[standard]
+# CRITICAL for handling file uploads (FormData)
+python-multipart 
 
-#Core Machine Learning Dependencies
-
+# Core Machine Learning Dependencies
 transformers==4.41.0
-torch # PyTorch for model execution
+torch 
 
-#Data Modeling (Pydantic is used by FastAPI)
-
+# Data Modeling (Pydantic is used by FastAPI)
 pydantic
 
-#Used for reading PDF documents in future
-
-#We will use PyMuPDF (fitz) for reliable text extraction
-
+# PDF Processing
 PyMuPDF
+
+# CRITICAL for Image Analysis (OCR)
+pytesseract
+Pillow
