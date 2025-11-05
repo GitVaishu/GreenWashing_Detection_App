@@ -10,12 +10,14 @@ import LandingScreen from "./src/screens/landingpg";
 import MethodScreen from "./src/screens/methodpg";
 import ImageOptionScreen from "./src/screens/imageoption"; // <-- IMPORT NEW
 import DetectorScreen from "./src/screens/detectorpg";
+import QuizScreen from "./src/screens/quizpg";
 
 // --- DEFINE YOUR SCREEN LIST ---
 export type RootStackParamList = {
   Landing: undefined;
   Method: undefined;
   ImageOption: undefined; // <-- ADD NEW SCREEN
+  Quiz: undefined;
 
   // This is now a more complex type.
   // The Detector screen can be opened in one of 3 ways:
@@ -61,6 +63,20 @@ function App() {
           name="Detector"
           component={DetectorScreen}
           options={{ title: "Greenwash Detector" }}
+        />
+        <Stack.Screen
+          name="Quiz" // This name is used for navigation.navigate('Quiz')
+          component={QuizScreen}
+          options={{
+            title: "Greenwashing Quiz",
+            headerStyle: { backgroundColor: "#F3FAF7" },
+            headerShadowVisible: false,
+            headerTitleStyle: {
+              color: "#00552E",
+              fontSize: 20,
+              fontWeight: "600",
+            },
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

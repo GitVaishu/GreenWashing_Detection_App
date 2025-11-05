@@ -89,6 +89,23 @@ const MethodScreen = ({ navigation }: Props) => {
               </Text>
             </View>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.methodBox}
+            // Navigate to the 'Quiz' screen we registered in App.tsx
+            onPress={() => navigation.navigate("Quiz")}
+          >
+            <View style={styles.iconCircle}>
+              {/* Using a fun icon for the quiz */}
+              <Ionicons name="bulb-outline" size={28} color="#f39c12" /> 
+            </View>
+            <View style={styles.textBox}>
+              <Text style={styles.methodTitle}>Take Fun Quiz</Text>
+              <Text style={styles.methodSubtitle}>
+                Test your knowledge on greenwashing
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
         {/* --- END OF WRAPPER --- */}
 

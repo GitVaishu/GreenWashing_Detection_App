@@ -41,4 +41,3 @@ class GreenwashResponse(BaseModel):
     
     # Grouped detailed indicators for easy frontend display
     detailed_analysis: Dict[str, List[Score]]
-    
