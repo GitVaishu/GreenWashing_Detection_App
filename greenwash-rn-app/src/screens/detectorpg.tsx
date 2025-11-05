@@ -27,7 +27,7 @@ if (!(global as any).atob) {
 }
 
 // --- CONFIGURATION ---
-const BACKEND_URL = "http://192.168.21.67:8000"; // <<< MAKE SURE THIS IS YOUR IP
+const BACKEND_URL = "http://10.173.67.109:8000"; // <<< MAKE SURE THIS IS YOUR IP
 
 // --- DATA MODELS ---
 interface Score {
@@ -76,16 +76,45 @@ const DetectorScreen = ({ route, navigation }: Props) => {
   // --- API LOGIC ---
 
   const handleAnalyzeText = useCallback(async () => {
-    // (This function is the same as before)
-    if (claimText.trim() === "") {
+    // --- START: ENHANCED VALIDATION LOGIC ---
+
+    const trimmedClaim = claimText.trim();
+    setErrorMessage(""); // Clear previous errors
+
+    // 1. Basic Presence Check
+    if (trimmedClaim === "") {
       setErrorMessage("Please enter a claim.");
       return;
     }
+
+    // 2. Minimum Length Check
+    const MIN_LENGTH = 10;
+    if (trimmedClaim.length < MIN_LENGTH) {
+      // --- FIX 1: Use BACKTICKS for template literal ---
+      setErrorMessage(
+        `Claim must be at least ${MIN_LENGTH} characters long to be analyzed.`
+      );
+      return;
+    }
+
+    // 3. Simple Numeric Check (For your 'random number' issue)
+    const numericRegex = /^[0-9\s.,]+$/;
+    if (numericRegex.test(trimmedClaim)) {
+      // --- FIX 2: Use BACKTICKS for template literal (optional, but safe) ---
+      setErrorMessage(
+        `Input appears to be a number. Please enter a text-based environmental claim.`
+      );
+      return;
+    }
+
+    // --- END: ENHANCED VALIDATION LOGIC ---
+
+    // --- PROCEED WITH API CALL ONLY IF VALIDATION PASSES ---
     setLoading(true);
-    setErrorMessage("");
     setResponse(null);
     const url = `${BACKEND_URL}/api/classify-text`;
-    const body = JSON.stringify({ text: claimText });
+    const body = JSON.stringify({ text: trimmedClaim }); // Use the trimmed version
+
     try {
       const fetchOptions: RequestInit = {
         method: "POST",
@@ -94,6 +123,7 @@ const DetectorScreen = ({ route, navigation }: Props) => {
       };
       const apiResponse = await fetch(url, fetchOptions);
       const text = await apiResponse.text();
+
       if (!apiResponse.ok) {
         throw new Error(
           `API Error: ${apiResponse.status} - ${text.substring(0, 100)}`
@@ -102,6 +132,7 @@ const DetectorScreen = ({ route, navigation }: Props) => {
       if (!text) {
         throw new Error("Server returned an empty response.");
       }
+
       const jsonResponse: GreenwashResponse = JSON.parse(text);
       if (!jsonResponse || !jsonResponse.prediction || !jsonResponse.scores) {
         throw new Error("Invalid response structure received from API.");

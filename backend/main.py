@@ -1,95 +1,3 @@
-# import uvicorn
-# from fastapi import FastAPI, HTTPException
-# from typing import Dict, Any
-
-# # Import the core ML logic and data models
-# from .ml_core import CLASSIFIER_INSTANCE, GreenwashClassifier
-# from .models import ClaimRequest, GreenwashResponse
-
-# # Initialize the FastAPI application
-# app = FastAPI(
-#     title="Greenwashing Detection API",
-#     description="Zero-shot classification API for detecting misleading sustainability claims.",
-#     version="1.0.0"
-# )
-
-# # Initialize the classifier instance (it loads the model on creation)
-# # This will ensure the model is ready when the server starts
-# # We use the global instance defined in ml_core
-# classifier: GreenwashClassifier = CLASSIFIER_INSTANCE
-
-
-# @app.on_event("startup")
-# async def startup_event():
-#     """Ensure the model is loaded during application startup."""
-#     if classifier.classifier is None:
-#         # Attempt to load model again if it failed during initialization
-#         classifier.load_model()
-#     if classifier.classifier is None:
-#         print("CRITICAL: ML model failed to load. API endpoints will raise errors.")
-
-
-# @app.get("/", tags=["Health"])
-# def read_root():
-#     """Health check endpoint."""
-#     model_status = "Ready" if classifier.classifier else "Loading or Failed"
-#     return {"status": "ok", "model_status": model_status, "service": "Greenwash Detection API"}
-
-
-# @app.post(
-#     "/api/classify-text", 
-#     response_model=GreenwashResponse, 
-#     tags=["Classification"]
-# )
-# async def classify_claim(request: ClaimRequest):
-#     """
-#     Analyzes an input text claim and classifies it as Greenwashing, Genuine Sustainability,
-#     or Marketing Hype, providing detailed confidence scores.
-#     """
-#     text = request.text.strip()
-    
-#     if not classifier.classifier:
-#         raise HTTPException(status_code=503, detail="AI Model not yet loaded or failed to initialize.")
-    
-#     if not text:
-#         raise HTTPException(status_code=400, detail="Input text claim cannot be empty.")
-    
-#     try:
-#         # Perform primary and detailed analysis
-#         primary_scores, detailed_scores = classifier.analyze_claim(text)
-
-#         # Get the top prediction
-#         top_score = primary_scores[0]
-        
-#         # Group the detailed scores for structured response
-#         grouped_indicators = classifier.group_detailed_scores(detailed_scores)
-        
-#         # Construct the final response object
-#         response = GreenwashResponse(
-#             input_text=text,
-#             prediction=top_score.label,
-#             confidence=top_score.score,
-#             primary_scores=primary_scores,
-#             detailed_scores=detailed_scores,
-#             grouped_indicators=grouped_indicators
-#         )
-        
-#         return response
-
-#     except Exception as e:
-#         # Log the error on the server side
-#         print(f"Classification Error: {e}")
-#         # Return a generic 500 error to the client
-#         raise HTTPException(
-#             status_code=500, 
-#             detail="An internal error occurred during classification. Check server logs."
-#         )
-
-
-# if __name__ == "__main__":
-#     # Use this to run locally: uvicorn main:app --reload
-#     # When running the file directly (e.g., for testing):
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
 """
 FastAPI application for the Greenwashing Detection API.
 Routes all requests to the ML core logic.
@@ -100,13 +8,21 @@ from pydantic import BaseModel
 import os
 import io
 import fitz  # PyMuPDF library for PDF processing (imported as fitz)
+import pytesseract
+from PIL import Image
 
+os.environ['TESSDATA_PREFIX'] = r'C:\Program Files\Tesseract-OCR\tessdata'
 # Local imports
 from models import TextClaim, GreenwashResponse # Assuming models.py is in the same directory
 from ml_core import MLModel
 
 # --- Initialization ---
 app = FastAPI(title="Greenwash Detector API", version="1.0")
+
+# --- THIS IS THE NEW TESSERACT PATH ---
+# UPDATE THIS PATH if you installed Tesseract somewhere else
+# CHANGE THIS LINE
+pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
 
 # Load the singleton ML model instance at startup
 model_instance = MLModel()
@@ -189,3 +105,36 @@ async def classify_file(file: UploadFile = File(...)):
     except Exception as e:
         print(f"File classification error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error during file processing.")
+
+# --- THIS IS THE NEW IMAGE ENDPOINT ---
+@app.post("/api/classify-image", response_model=GreenwashResponse)
+async def classify_image(file: UploadFile = File(...)):
+    """
+    Analyzes an uploaded image for greenwashing claims.
+    It uses Tesseract OCR to extract text and then analyzes the text.
+    """
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File is not an image.")
+
+    try:
+        # Read the uploaded file into memory
+        contents = await file.read()
+        
+        # Open the image using PIL (Pillow)
+        image = Image.open(io.BytesIO(contents))
+        
+        # Use Tesseract to extract text from the image
+        extracted_text = pytesseract.image_to_string(image, lang='eng')
+        
+        if not extracted_text or extracted_text.strip() == "":
+            raise HTTPException(status_code=400, detail="No text could be extracted from the image.")
+        
+        # Now, use the ML model (DistilBERT) on the extracted text
+        analysis_result = model_instance.analyze_claim(extracted_text)
+        
+        return analysis_result
+        
+    except Exception as e:
+        # Catch errors from Tesseract or the model
+        print(f"Error processing image: {e}") # Print the error to your terminal
+        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
